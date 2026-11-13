@@ -87,7 +87,7 @@ python skills/s2v13-trend-bot/scripts/order_engine.py --plan plan.json
 
 <img src="skills/s2v13-trend-bot/assets/risk-controls.png" alt="risk" />
 
-实测 40+ 组风控配置：**只有「周亏限制」「回撤后 EMA200 过滤」「品种分级」有效**，
+实测 40+ 组风控配置：**只有「周亏限制」「回撤后长均线过滤」「品种分级」有效**，
 熔断 / 冷却 / 牛熊判断改进 / 延迟开仓全部负向。
 
 ## 目录结构

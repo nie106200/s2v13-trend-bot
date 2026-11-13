@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.log
+.env
+.secrets/
+config.toml
+*.json.bak
+runs/*.csv

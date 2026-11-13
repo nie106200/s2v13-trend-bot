@@ -71,7 +71,7 @@ def main():
             act="all"; why="日线趋势线破位"
         elif can and s not in se.MEME and bool(last.death):
             mfe = p.get("mfe", p["entry"])/p["entry"]-1
-            if not p.get("halved") and mfe>=0.10 and last.close>last.e200:
+            if not p.get("halved") and mfe>=se.MFE_TH and last.close>last.e200:
                 act="half"; why="死叉减半(MFE≥10%)"
             else: act="all"; why="死叉全平"
         if act:
@@ -122,7 +122,7 @@ def main():
                     if mg>st["cash"]: continue
                     st["cash"] -= mg + notional_i*COMM
                     d=data[s]; last=d.iloc[-1]
-                    stop=max(last.close-3*last.atr60, last.close*(1-1.2*d.attrs["pb"]))
+                    stop=max(last.close-se.ATR_MULT*last.atr60, last.close*(1-se.PB_MULT*d.attrs["pb"]))
                     pos[s]=dict(entry=p0,qty=qty,margin=mg,stop=float(stop),entry_bar=bar,halved=False,mfe=p0)
                     events.append(dict(act="open",sym=s,px=p0,qty=qty,notional=round(notional_i,2),stop=round(stop,6)))
     eq2 = mtm()

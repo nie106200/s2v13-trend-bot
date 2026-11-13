@@ -44,14 +44,16 @@ python skills/s2v13-trend-bot/scripts/order_engine.py --plan plan.json
 ## 策略逻辑
 
 ```
-入场  核心：EMA8 > EMA100 > EMA200 且 close > EMA100
-      meme：道氏破前高 + close > EMA100
-止损  max( 3×ATR60 , 入场价 × (1 − 1.2×回调深度) )
-出场  核心：死叉时若浮盈≥10% 且 close>EMA200 → 减半；否则全平
+入场  核心：三均线多头排列（EMA_fast > EMA_mid > EMA_slow）且 close > EMA_mid
+      meme：道氏破前高 + close > EMA_mid
+止损  max( ATR 倍数 , 入场价 × (1 − 回调深度倍数) )   ← 参数见 config
+出场  核心：死叉时若浮盈达阈值且仍在长线上方 → 减半；否则全平
       meme：日线趋势线破位
-仓位  30 日波动率反比，BTC = 1.0 基准；名义 150%；3× 逐仓
-闸门  BTC<200日线不开仓 · 回撤≥20% 只开 EMA200 上方 · 品种分级（广度）
-补丁  入场 24h 只允许止损 · 每周每品种亏 2 单停
+仓位  30 日波动率反比，锚定最低波动品种 = 1.0；名义与杠杆见 config
+闸门  熊市不新开 · 回撤后只开长线上方 · 品种分级（广度）
+补丁  入场最小持仓期只允许止损 · 每周每品种亏损达上限后停开
+
+> 具体数值（EMA 周期、ATR 倍数、阈值等）不在本仓库，见 `scripts/config.example.json` 结构。
 ```
 
 ## 回测结果

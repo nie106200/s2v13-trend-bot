@@ -1,0 +1,68 @@
+{
+  "profile": "<your-okx-cli-profile>",
+  "universe": {
+    "core": [
+      "BTC",
+      "ETH",
+      "XRP",
+      "BNB",
+      "SOL",
+      "ADA",
+      "TRX",
+      "LINK",
+      "DOT"
+    ],
+    "meme": [
+      "DOGE",
+      "PEPE",
+      "ZEC"
+    ],
+    "alt3": [
+      "SAND",
+      "MANA",
+      "NEAR",
+      "SEI",
+      "ALGO",
+      "HBAR",
+      "UNI"
+    ]
+  },
+  "entry": {
+    "ema_fast": 10,
+    "ema_mid": 60,
+    "ema_slow": 200,
+    "atr_len": 60,
+    "pivot_k": 3
+  },
+  "stop": {
+    "atr_mult": 2.5,
+    "pullback_mult": 1,
+    "pullback_lookback_k": 3
+  },
+  "exit": {
+    "mfe_threshold": 0.08,
+    "halve_on_death_cross": true,
+    "min_hold_bars": 6
+  },
+  "sizing": {
+    "mode": "monthly_vol_inverse",
+    "vol_window_days": 30,
+    "anchor": "BTC",
+    "ratio_floor": 0.2,
+    "ratio_cap": 1,
+    "gross_cap": 1,
+    "max_pos_pct": 0.4,
+    "leverage": 3,
+    "td_mode": "isolated"
+  },
+  "gates": {
+    "bear_ma_days": 200,
+    "dd_trigger": 0.2,
+    "breadth_core": 0,
+    "breadth_satellite": 0.6,
+    "breadth_meme": 0.8
+  },
+  "patch": {
+    "weekly_loss_limit": 2
+  }
+}

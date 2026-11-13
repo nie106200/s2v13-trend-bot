@@ -11,16 +11,31 @@ import numpy as np, pandas as pd
 try: sys.stdout.reconfigure(encoding="utf-8")
 except Exception: pass
 
-PROFILE = "策略接口1"
-CORE = ["BTC","ETH","XRP","BNB","SOL","DOGE","ADA","TRX","LINK","DOT"]
-ALT  = ["ZEC","PEPE","SAND","MANA","NEAR","SEI","ALGO","HBAR","UNI"]
-SYMS = CORE + ALT
-MEME = {"DOGE","PEPE","ZEC"}          # 道氏入场 + 日线趋势线出场
-GROSS = 1.5        # 名义上限（×权益）
-LEV = 3.0          # 逐仓杠杆
-MAXPOS = 0.5       # 单品种上限（×权益）
-MIN_BARS = 6       # 24h 最小持仓
-DD_GATE = 0.20     # 账户回撤触发 EMA200 过滤
+# ---------- 参数配置（私有 config.json 优先，否则用示例） ----------
+_HERE = os.path.dirname(os.path.abspath(__file__))
+def _load_cfg():
+    for n in ("config.json","config.example.json"):
+        p = os.path.join(_HERE,n)
+        if os.path.exists(p):
+            with open(p,encoding="utf-8") as f: return json.load(f), n
+    return None, None
+CFG, CFG_SRC = _load_cfg()
+if CFG is None:
+    raise SystemExit("缺少配置文件：请在脚本目录放 config.json（可从 config.example.json 复制）")
+
+PROFILE = CFG["profile"]
+CORE = CFG["universe"]["core"]; MEME = set(CFG["universe"]["meme"]); ALT = CFG["universe"].get("alt3",[])
+SYMS = list(dict.fromkeys(CORE+list(MEME)+ALT))
+GROSS  = CFG["sizing"]["gross_cap"]
+LEV    = CFG["sizing"]["leverage"]
+MAXPOS = CFG["sizing"]["max_pos_pct"]
+MIN_BARS = CFG["exit"]["min_hold_bars"]
+DD_GATE  = CFG["gates"]["dd_trigger"]
+E_FAST = CFG["entry"]["ema_fast"]; E_MID = CFG["entry"]["ema_mid"]; E_SLOW = CFG["entry"]["ema_slow"]
+ATR_N  = CFG["entry"]["atr_len"];  PIV_K = CFG["entry"]["pivot_k"]
+ATR_MULT = CFG["stop"]["atr_mult"]; PB_MULT = CFG["stop"]["pullback_mult"]
+MFE_TH = CFG["exit"]["mfe_threshold"]
+BEAR_MA_DAYS = CFG["gates"]["bear_ma_days"]
 BATCH = 400        # 拉取 K 线根数
 
 OKX_BIN = os.path.join(os.environ.get("APPDATA", r"C:\Users\nie\AppData\Roaming"), "npm", "okx.cmd")
@@ -58,15 +73,15 @@ def atr(df,n=60):
 
 def indicators(df):
     d = df.copy()
-    d["e8"],d["e100"],d["e200"] = ema(d.close,8),ema(d.close,100),ema(d.close,200)
-    d["atr60"] = atr(d,60)
+    d["e8"],d["e100"],d["e200"] = ema(d.close,E_FAST),ema(d.close,E_MID),ema(d.close,E_SLOW)
+    d["atr60"] = atr(d,ATR_N)
     d["death"] = (d.e8.shift(1)>=d.e100.shift(1)) & (d.e8<d.e100)
     # 3 根 pivot high（已滞后 3 根，无未来函数）
     ph = pd.Series(np.nan,index=d.index)
     h = d.high.to_numpy()
     for i in range(3,len(d)-3):
-        if h[i]==h[i-3:i+4].max(): ph.iloc[i]=h[i]
-    d["lastH"] = ph.shift(3).ffill()      # 只使用已确认的 pivot
+        if h[i]==h[i-PIV_K:i+PIV_K+1].max(): ph.iloc[i]=h[i]
+    d["lastH"] = ph.shift(PIV_K).ffill()      # 只使用已确认的 pivot
     # 日线趋势线
     dd = d.set_index("ts").resample("1D").agg({"high":"max","low":"min","close":"last"}).dropna()
     lo = dd.low.to_numpy(); pv = np.full(len(dd),np.nan)
@@ -136,7 +151,7 @@ def main():
     bd = fetch("BTC-USDT-SWAP","1D",300)
     if bd is None or len(bd) < 210:
         print("[错误] BTC 日线不足"); return
-    bma200 = bd.close.rolling(200).mean()
+    bma200 = bd.close.rolling(BEAR_MA_DAYS).mean()
     bull = bool(bd.close.iloc[-1] > bma200.iloc[-1]) if pd.notna(bma200.iloc[-1]) else False
     btc_ma200 = float(bma200.iloc[-1]) if pd.notna(bma200.iloc[-1]) else None
     btc_px = float(bd.close.iloc[-1])
@@ -160,7 +175,7 @@ def main():
             entry_type = "三线排列"
             exit_sig = False
         hr = (not last.death) and False
-        stop = max(last.close - 3*last.atr60, last.close*(1-1.2*pb))
+        stop = max(last.close - ATR_MULT*last.atr60, last.close*(1-PB_MULT*pb))
         ratio = min(1.0, max(0.15, mvol_btc/last.mvol)) if np.isfinite(last.mvol) and last.mvol>0 and np.isfinite(mvol_btc) else 0.5
         rows.append(dict(sym=s, close=float(last.close), e8=float(last.e8), e100=float(last.e100), e200=float(last.e200),
                          atr60=float(last.atr60), stop=float(stop), stop_pct=float(stop/last.close-1),
